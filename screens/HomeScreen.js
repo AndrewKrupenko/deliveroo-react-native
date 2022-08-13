@@ -1,4 +1,4 @@
-import React, { useLayoutEffect } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
   Image,
   SafeAreaView,
@@ -14,10 +14,14 @@ import {
   SearchIcon,
   UserIcon,
 } from "react-native-heroicons/outline";
+
 import Categories from "../components/Categories";
+import FeaturedRow from "../components/FeaturedRow";
+import sanityClient from "../sanity";
 
 const HomeScreen = () => {
   const navigation = useNavigation();
+  const [featuredCategories, setFeaturedCategories] = useState([]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -25,8 +29,26 @@ const HomeScreen = () => {
     });
   }, []);
 
+  useEffect(() => {
+    sanityClient
+      .fetch(
+        `
+          *[_type == "featured"] {
+            ...,
+            restaurants[]->{
+              ...,
+              dishes[]->
+            }
+          }
+        `
+      )
+      .then((data) => {
+        setFeaturedCategories(data);
+      });
+  }, []);
+
   return (
-    <SafeAreaView className="bg-white pt-5">
+    <SafeAreaView className="bg-white py-8">
       <View className="flex-row pb-3 items-center mx-4 space-x-2">
         <Image
           source={{ uri: "https://links.papareact.com/wru" }}
@@ -44,7 +66,7 @@ const HomeScreen = () => {
       </View>
 
       <View className="flex-row items-center space-x-2 pb-2 mx-4">
-        <View className="flex-row flex-1 space-x-2 bg-gray-200 p-3">
+        <View className="flex-row flex-1 space-x-2 bg-gray-200 p-3 items-center">
           <SearchIcon color="gray" size={20} />
           <TextInput
             placeholder="Restaurants and cuisines"
@@ -62,6 +84,15 @@ const HomeScreen = () => {
         }}
       >
         <Categories />
+
+        {featuredCategories?.map((category) => (
+          <FeaturedRow
+            key={category._id}
+            id={category._id}
+            title={category.name}
+            description={category.short_description}
+          />
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
